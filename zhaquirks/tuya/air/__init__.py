@@ -6,6 +6,7 @@ import zigpy.types as t
 from zigpy.zcl.clusters.measurement import (
     CarbonDioxideConcentration,
     FormaldehydeConcentration,
+    PM25,
     RelativeHumidity,
     TemperatureMeasurement,
 )
@@ -47,6 +48,10 @@ class TuyaAirQualityFormaldehyde(FormaldehydeConcentration, TuyaLocalCluster):
     """Tuya Formaldehyde concentration measurement."""
 
 
+class TuyaAirQualityPM25(PM25, TuyaLocalCluster):
+    """Tuya PM25 measurement."""
+
+
 class TuyaCO2ManufCluster(TuyaNewManufCluster):
     """Tuya with Air quality data points."""
 
@@ -76,6 +81,55 @@ class TuyaCO2ManufCluster(TuyaNewManufCluster):
         2: "_dp_2_attr_update",
         18: "_dp_2_attr_update",
         19: "_dp_2_attr_update",
+        21: "_dp_2_attr_update",
+        22: "_dp_2_attr_update",
+    }
+
+
+class TuyaAirHousekeeperManufCluster(TuyaNewManufCluster):
+    """Tuya intelligent air housekeeper (6in1) device data points."""
+
+    dp_to_attribute: Dict[int, DPToAttributeMapping] = {
+        2: DPToAttributeMapping(
+            TuyaAirQualityPM25.ep_attribute,
+            "measured_value",
+            # The sensor sometimes gives garbage values 0xAAAB, 0xAAAC and
+            # simiar.  Filter out all values above or equal 0xAA00, as these
+            # are outside of the measurement range anyhow.
+            lambda x: None if x >= 0xAA00 else x,
+        ),
+        18: DPToAttributeMapping(
+            TuyaAirQualityTemperature.ep_attribute,
+            "measured_value",
+            lambda x: x * 10,
+        ),
+        19: DPToAttributeMapping(
+            TuyaAirQualityHumidity.ep_attribute,
+            "measured_value",
+            lambda x: x * 10,
+        ),
+        20: DPToAttributeMapping(
+            TuyaAirQualityFormaldehyde.ep_attribute,
+            "measured_value",
+            lambda x: x,
+        ),
+        21: DPToAttributeMapping(
+            TuyaAirQualityVOC.ep_attribute,
+            "measured_value",
+            lambda x: x,
+        ),
+        22: DPToAttributeMapping(
+            TuyaAirQualityCO2.ep_attribute,
+            "measured_value",
+            lambda x: x * 1e-6,
+        ),
+    }
+
+    data_point_handlers = {
+        2: "_dp_2_attr_update",
+        18: "_dp_2_attr_update",
+        19: "_dp_2_attr_update",
+        20: "_dp_2_attr_update",
         21: "_dp_2_attr_update",
         22: "_dp_2_attr_update",
     }
